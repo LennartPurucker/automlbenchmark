@@ -1,5 +1,5 @@
 ---
-project_repository: https://github.com/Innixma/automlbenchmark#2023_08_31    # this is also the url used to clone the repository on ec2 instances
+project_repository: https://github.com/LennartPurucker/automlbenchmark#so_benchmark   # this is also the url used to clone the repository on ec2 instances
                                                                           # when running those without docker.
                                                                           # to clone a specific branch/tag, add a url fragment, e.g.:
                                                                           # https://github.com/openml/automlbenchmark#stable
@@ -9,7 +9,7 @@ frameworks:              # configuration namespace for the frameworks definition
     - '{root}/resources/frameworks.yaml'
     - '{user}/frameworks.yaml'
   allow_duplicates: true     # if true, the last definition is used.
-  tags: ['stable', 'latest', 'zeroshot', 'stackinfo', '2020Q2', '2021Q3',  '2023Q2', '2022AG']  # the list of supported tags when looking up frameworks:
+  tags: ['stable', 'latest', 'zeroshot', 'stackinfo', '2020Q2', '2021Q3',  '2023Q2', '2022AG', 'stacked_overfitting_benchmark']  # the list of supported tags when looking up frameworks:
                               # for example frmwk:latest will look for framework frmwk in a frameworks_latest.yaml file if present.
 
 benchmarks:                     # configuration namespace for the benchmarks definitions.
@@ -38,7 +38,7 @@ aws:                    # configuration namespace for AWS mode.
 
   s3:                               # sub-namespace for AWS S3 service.
     bucket: automl-benchmark-ag        # must be unique im whole Amazon s3, max 40 chars, and include only numbers, lowercase characters and hyphens.
-    root_key: ec2/2023_08_21/                  #
+    root_key: ec2/2023_09_22_infoleak/                 #
 
   ec2:
     instance_type:                       #
