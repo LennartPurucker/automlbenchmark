@@ -28,6 +28,49 @@ from ag_utils.zs_portfolio import get_hyperparameters_from_zeroshot_framework
 log = logging.getLogger(__name__)
 
 
+def _fit_autogluon(so_mitigation, predictor_para, fit_para):
+    if so_mitigation is None:
+        return _fit_autogluon_default(predictor_para, fit_para), None
+
+    train_data = pd.read_parquet(fit_para.get('train_data'))
+    label = predictor_para["label"]
+
+    if so_mitigation == "proxy":
+        from stacked_overfitting_mitigation.proxy_approaches import determine_stacked_overfitting, verify_stacking_settings
+        use_stacking = determine_stacked_overfitting(train_data, label, predictor_para["problem_type"])
+        fit_para = verify_stacking_settings(use_stacking, fit_para)
+        return _fit_autogluon_default(predictor_para, fit_para), None
+
+    # remove for other methods as they set train data manually
+    fit_para.pop('train_data')
+
+    if so_mitigation == "heuristic":
+        from stacked_overfitting_mitigation.heuristic_approaches import no_holdout
+        return no_holdout(train_data, label, predictor_para, fit_para), None
+
+    from stacked_overfitting_mitigation.holdout_approaches import use_holdout
+    if so_mitigation == "ho_select":
+        mitigate_para = dict(select_on_holdout=True)
+    elif so_mitigation == "ho_select_refit":
+        mitigate_para = dict(refit_autogluon=True, select_on_holdout=True)
+    elif so_mitigation == "ho_dynamic_stacking":
+        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True)
+    elif so_mitigation == "ho_ges_weights":
+        mitigate_para = dict(refit_autogluon=True, ges_holdout=True)
+    else:
+        raise ValueError(f"Unknown SO mitigation: {so_mitigation}")
+
+    predictor, ho_lb = use_holdout(train_data, label, predictor_para, fit_para, **mitigate_para)
+
+    return predictor, ho_lb
+
+
+def _fit_autogluon_default(predictor_para, fit_para):
+    predictor = TabularPredictor(**predictor_para)
+    predictor.fit(**fit_para)
+    return predictor
+
+
 def run(dataset, config):
     log.info(f"\n**** AutoGluon [v{__version__}] ****\n")
     log_pip_freeze()
@@ -51,6 +94,7 @@ def run(dataset, config):
     is_classification = config.type == 'classification'
     training_params = {k: v for k, v in config.framework_params.items() if not k.startswith('_')}
     presets = training_params.get("presets", [])
+    so_mitigation = training_params.pop("so_mitigation", None)
     presets = presets if isinstance(presets, list) else [presets]
     if preset_with_refit_full := (set(presets) & {"good_quality", "high_quality"}):
         preserve = 0.9
@@ -81,17 +125,20 @@ def run(dataset, config):
             training_params['hyperparameters'] = _hyperparameters
 
     with Timer() as training:
-        predictor: TabularPredictor = TabularPredictor(
+        predictor_para = dict(
             label=label,
             eval_metric=perf_metric.name,
             path=models_dir,
             problem_type=problem_type,
-        ).fit(
+        )
+        fit_para = dict(
             train_data=train_path,
             time_limit=config.max_runtime_seconds,
             **training_params
         )
+        predictor, ho_leaderboard = _fit_autogluon(so_mitigation, predictor_para, fit_para)
 
+    # FIXME how to save ho_leaderboard?
     artifact_saver = ArtifactSaver(predictor=predictor, config=config)
 
     log.info(f"Finished fit in {training.duration}s.")
