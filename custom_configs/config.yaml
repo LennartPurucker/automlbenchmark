@@ -71,6 +71,7 @@ aws:                    # configuration namespace for AWS mode.
     - '{user}/frameworks_2022AG.yaml'
     - '{user}/frameworks_zeroshot.yaml'
     - '{user}/frameworks_stackinfo.yaml'
+    - '{user}/frameworks_stacked_overfitting_benchmark.yaml'
     - '{user}/constraints.yaml'
     - '{user}/benchmarks'
     - '{user}/extensions'
