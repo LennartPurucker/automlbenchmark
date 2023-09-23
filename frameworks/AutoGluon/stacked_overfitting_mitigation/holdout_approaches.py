@@ -4,7 +4,7 @@ import logging
 from sklearn.model_selection import train_test_split
 
 from autogluon.tabular import TabularPredictor
-from .utils import _check_stacked_overfitting_from_leaderboard
+from stacked_overfitting_mitigation.utils import _check_stacked_overfitting_from_leaderboard
 
 logger = logging.getLogger(__name__)
 
