@@ -18,9 +18,7 @@ def stacked_overfitting_proxy_model(train_data, label, problem_type, split_rando
     # add duplicates to the code?
 
     classification_problem = problem_type in ["binary", "multiclass"]
-    if problem_type == "binary":
-        metric = "roc_auc"
-    elif problem_type == "multiclass":
+    if classification_problem:
         metric = "log_loss"
     elif problem_type == "regression":
         metric = "mse"
@@ -43,7 +41,7 @@ def stacked_overfitting_proxy_model(train_data, label, problem_type, split_rando
     fit_para = dict(
         hyperparameters={
             1: {"RF": [{}], "KNN": [{}]},
-            2: {"RF": [{}], "LR": [{}]},
+            2: {"RF": [{}]},
         },
         num_stack_levels=1,
         num_bag_sets=1,
@@ -58,10 +56,10 @@ def stacked_overfitting_proxy_model(train_data, label, problem_type, split_rando
     stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
     rmtree(predictor.path)
 
-    # Additional indicators / flags to not use stacking
-    lr_score = val_leaderboard.loc[val_leaderboard["model"] == "LinearModel_BAG_L2", "score_test"].iloc[0]
-    rf_score = val_leaderboard.loc[val_leaderboard["model"] == "RandomForest_BAG_L2", "score_test"].iloc[0]
-    stacked_overfitting = stacked_overfitting or (lr_score > rf_score)
+    # # Additional indicators / flags to not use stacking
+    # lr_score = val_leaderboard.loc[val_leaderboard["model"] == "LinearModel_BAG_L2", "score_test"].iloc[0]
+    # rf_score = val_leaderboard.loc[val_leaderboard["model"] == "RandomForest_BAG_L2", "score_test"].iloc[0]
+    # stacked_overfitting = stacked_overfitting or (lr_score > rf_score)
 
     with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", 1000):
         logger.info(val_leaderboard[["model", "score_test", "score_val"]].sort_values(by="score_val", ascending=False))
@@ -74,8 +72,9 @@ def determine_stacked_overfitting(train_data, label, problem_type):
     use_stacking_opinions = []
     for _ in range(5):
         use_stacking_opinions.append(stacked_overfitting_proxy_model(train_data, label, problem_type, split_random_state=rng.randint(0, 2**32)))
-    logger.info(f"Proxy Opinions: {use_stacking_opinions}")
-    use_stacking = not any(use_stacking_opinions)
+    logger.info(f"Proxy Opinions if stacked overfitting happens: {use_stacking_opinions}")
+    # if majority says it, then do not use stacking
+    use_stacking = np.array(use_stacking_opinions).mean() < 0.5
 
     return use_stacking
 

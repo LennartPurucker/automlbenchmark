@@ -438,8 +438,8 @@ class TaskConfig:
             inference_time_extension = 0
             if rconfig().inference_time_measurements.enabled:
                 inference_time_extension = rconfig().inference_time_measurements.additional_job_time
-            self.job_timeout_seconds = min(value * 2 + inference_time_extension,
-                                           value + rconfig().benchmarks.overhead_time_seconds + inference_time_extension)
+            self.job_timeout_seconds = value * 12 + inference_time_extension  # Custom timeout value
+                # min(value * 2 + inference_time_extension, value + rconfig().benchmarks.overhead_time_seconds + inference_time_extension))
         super().__setattr__(name, value)
 
     def __json__(self):
