@@ -18,7 +18,7 @@ def no_holdout(train_data, label, predictor_para, fit_para):
         pred = partial(predictor.predict_proba, as_multiclass=False)
     else:
         alt_metric = "mse"
-        pred = partial(predictor.predict)
+        pred = predictor.predict
 
 
     # Decide between L1 and L2 model based on heuristic
@@ -34,7 +34,7 @@ def no_holdout(train_data, label, predictor_para, fit_para):
     # -- Obtain reproduction scores
     X = predictor.transform_features(train_data.drop(columns=[label]))
     y = predictor.transform_labels(train_data[label])
-    
+
     l2_repo_oof = pred(X, model=best_l2_model, as_reproduction_predictions_args=dict(y=y))
 
     l1_models = [model_name for model_name in leaderboard["model"] if model_name.endswith("BAG_L1")]
