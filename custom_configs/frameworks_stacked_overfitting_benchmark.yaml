@@ -32,16 +32,15 @@ AG_stack:
     _leaderboard_test: True
     num_stack_levels: 1
 
-AG_heuristic_v2:
-  extends: AutoGluon
-  description: "AutoGluon with stacking but the final model is selected based on a heuristic from L1 xor L2."
-  params:
-    _save_artifacts: ['leaderboard', 'info']
-    presets: best_quality
-    _leaderboard_test: True
-    so_mitigation: "heuristic"
-    num_stack_levels: 1
-
+#AG_heuristic_v2:
+#  extends: AutoGluon
+#  description: "AutoGluon with stacking but the final model is selected based on a heuristic from L1 xor L2."
+#  params:
+#    _save_artifacts: ['leaderboard', 'info']
+#    presets: best_quality
+#    _leaderboard_test: True
+#    so_mitigation: "heuristic"
+#    num_stack_levels: 1
 #AG_ho_select:
 #  extends: AutoGluon
 #  description: "Select final model based on holdout data."
@@ -72,22 +71,46 @@ AG_ho_dynamic_stacking:
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
 
-AG_ho_ges_weights:
+#AG_ho_ges_weights:
+#  extends: AutoGluon
+#  description: "Determine GES Weights based on holdout, then refit and use these weights for the final predictions."
+#  params:
+#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+#    presets: best_quality
+#    _leaderboard_test: True
+#    so_mitigation: "ho_ges_weights"
+#    num_stack_levels: 1
+
+#AG_stacking_proxy_v2:
+#  extends: AutoGluon
+#  description: "Determine whether to use stacking by proxy before running AG."
+#  params:
+#    _save_artifacts: ['leaderboard', 'info']
+#    presets: best_quality
+#    _leaderboard_test: True
+#    so_mitigation: "proxy"
+#    num_stack_levels: 1
+
+
+AG_stack_ho_dynamic_clean_oof:
   extends: AutoGluon
-  description: "Determine GES Weights based on holdout, then refit and use these weights for the final predictions."
+  description: "Determine SO based on holdout and refit with or without clean oof prediction fix but always with stacking."
   params:
     _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
     presets: best_quality
     _leaderboard_test: True
-    so_mitigation: "ho_ges_weights"
+    so_mitigation: "dynamic_clean_oof_predictions"
     num_stack_levels: 1
 
-AG_stacking_proxy_v2:
+
+AG_stack_clean_oof:
   extends: AutoGluon
-  description: "Determine whether to use stacking by proxy before running AG."
+  description: "AG_stack but clean oof prediction fix enabled."
   params:
     _save_artifacts: ['leaderboard', 'info']
     presets: best_quality
     _leaderboard_test: True
-    so_mitigation: "proxy"
     num_stack_levels: 1
+    predictor_para:
+      learner_kwargs:
+        clean_oof_predictions: True

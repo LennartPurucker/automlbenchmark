@@ -1,6 +1,7 @@
 from shutil import rmtree
 import logging
-
+import pandas as pd
+import time
 from sklearn.model_selection import train_test_split
 
 from autogluon.tabular import TabularPredictor
@@ -21,7 +22,8 @@ def _verify_stacking_settings(use_stacking, fit_para):
 
 
 def use_holdout(
-    train_data, label, predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False, dynamic_stacking=False, ges_holdout=False, holdout_seed=42
+        train_data, label, predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False, dynamic_stacking=False, dynamic_fix=False,
+        ges_holdout=False, holdout_seed=42, fix_predictor_para=None
 ):
     """A function to run different configurations of AutoGluon with a holdout set to avoid stacked overfitting.
 
@@ -54,6 +56,9 @@ def use_holdout(
     val_leaderboard = predictor.leaderboard(outer_val_data, silent=True).reset_index(drop=True)
     best_model_on_holdout = val_leaderboard.loc[val_leaderboard["score_test"].idxmax(), "model"]
     stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
+    with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", 1000):
+        logger.info(val_leaderboard.sort_values(by="score_val", ascending=False))
+
     logger.info(f"Stacked overfitting in this run: {stacked_overfitting}")
 
     if ges_holdout:
@@ -75,9 +80,15 @@ def use_holdout(
     if dynamic_stacking:
         fit_para = _verify_stacking_settings(use_stacking=not stacked_overfitting, fit_para=fit_para)
 
+    if dynamic_fix and stacked_overfitting:
+        # Enable fix if we spotted SO and use stacking
+        predictor_para = fix_predictor_para
+        fit_para = _verify_stacking_settings(use_stacking=True, fit_para=fit_para)
+
     # Refit and reselect
     if refit_autogluon:
         rmtree(predictor.path)  # clean up
+        time.sleep(5)  # wait for the folder to be correctly deleted and log messages
 
         predictor = TabularPredictor(**predictor_para)
         predictor.fit(train_data=train_data, **fit_para)
