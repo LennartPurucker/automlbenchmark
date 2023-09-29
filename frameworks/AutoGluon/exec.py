@@ -40,6 +40,7 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para):
     label = predictor_para["label"]
 
     if so_mitigation == "proxy":
+        log.info("Fit proxy.")
         from stacked_overfitting_mitigation.proxy_approaches import determine_stacked_overfitting, verify_stacking_settings
 
         use_stacking = determine_stacked_overfitting(train_data, label, predictor_para["problem_type"])
@@ -48,10 +49,10 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para):
 
     # remove for other methods as they set train data manually
     fit_para.pop("train_data")
+    log.info(f"Fit {so_mitigation}.")
 
     if so_mitigation == "heuristic":
         from stacked_overfitting_mitigation.heuristic_approaches import no_holdout
-
         return no_holdout(train_data, label, predictor_para, fit_para), None
 
     from stacked_overfitting_mitigation.holdout_approaches import use_holdout
@@ -105,7 +106,6 @@ def run(dataset, config):
     is_classification = config.type == "classification"
     training_params = {k: v for k, v in config.framework_params.items() if not k.startswith("_")}
     presets = training_params.get("presets", [])
-    so_mitigation = training_params.pop("so_mitigation", None)
     so_mitigation = training_params.pop("so_mitigation", None)
     add_predictor_paras = training_params.pop("predictor_para", dict())
 

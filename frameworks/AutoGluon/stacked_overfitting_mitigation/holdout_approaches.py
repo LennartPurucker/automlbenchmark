@@ -48,7 +48,7 @@ def use_holdout(
         train_data, test_size=1 / 9, random_state=holdout_seed, stratify=train_data[label] if classification_problem else None
     )
 
-    logger.info(f"Start running AutoGluon on subset of data data")
+    logger.info(f"Start running AutoGluon on subset of data")
     predictor = TabularPredictor(**predictor_para)
     predictor.fit(train_data=inner_train_data, **fit_para)
 
@@ -78,16 +78,21 @@ def use_holdout(
             weights_level = 3
 
     if dynamic_stacking:
+        logger.info(f"Check if stacking used for refit or not")
         fit_para = _verify_stacking_settings(use_stacking=not stacked_overfitting, fit_para=fit_para)
 
     if dynamic_fix and stacked_overfitting:
+        logger.info(f"Enable Dynamic Fix")
         # Enable fix if we spotted SO and use stacking
         predictor_para = fix_predictor_para
         fit_para = _verify_stacking_settings(use_stacking=True, fit_para=fit_para)
 
     # Refit and reselect
     if refit_autogluon:
+        logger.info(f"Refit with the following configs, predictor: {predictor_para} and fit: {fit_para}")
+
         rmtree(predictor.path)  # clean up
+        del predictor
         time.sleep(5)  # wait for the folder to be correctly deleted and log messages
 
         predictor = TabularPredictor(**predictor_para)
