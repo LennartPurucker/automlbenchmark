@@ -37,8 +37,8 @@ aws:                    # configuration namespace for AWS mode.
                                                      # This should be a number between 900 (15mn) to 43200 (12h).
 
   s3:                               # sub-namespace for AWS S3 service.
-    bucket: automl-benchmark-ag        # must be unique im whole Amazon s3, max 40 chars, and include only numbers, lowercase characters and hyphens.
-    root_key: ec2/2023_09_25_infoleak/                 #
+    bucket: automl-benchmark-ag       # must be unique im whole Amazon s3, max 40 chars, and include only numbers, lowercase characters and hyphens.
+    root_key: ec2/amlb_purucker/2023_09_28_purucker/  # TODO: rename for different benchmark runs
 
   ec2:
     instance_type:                       #

@@ -90,9 +90,31 @@ AG_ho_dynamic_stacking:
 #    _leaderboard_test: True
 #    so_mitigation: "proxy"
 #    num_stack_levels: 1
+#AG_stack_ho_dynamic_clean_oof:  #  (with bug and wrong implementation for RF/XT)
+#  extends: AutoGluon
+#  description: "Determine SO based on holdout and refit with or without clean oof prediction fix but always with stacking."
+#  params:
+#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+#    presets: best_quality
+#    _leaderboard_test: True
+#    so_mitigation: "dynamic_clean_oof_predictions"
+#    num_stack_levels: 1
+#
+#
+#AG_stack_clean_oof:  #  (with wrong implementation for RF/XT)
+#  extends: AutoGluon
+#  description: "AG_stack but clean oof prediction fix enabled."
+#  params:
+#    _save_artifacts: ['leaderboard', 'info']
+#    presets: best_quality
+#    _leaderboard_test: True
+#    num_stack_levels: 1
+#    predictor_para:
+#      learner_kwargs:
+#        clean_oof_predictions: True
 
 
-AG_stack_ho_dynamic_clean_oof:
+AG_stack_ho_dynamic_clean_oof_v2:
   extends: AutoGluon
   description: "Determine SO based on holdout and refit with or without clean oof prediction fix but always with stacking."
   params:
@@ -103,7 +125,7 @@ AG_stack_ho_dynamic_clean_oof:
     num_stack_levels: 1
 
 
-AG_stack_clean_oof:
+AG_stack_clean_oof_v2:
   extends: AutoGluon
   description: "AG_stack but clean oof prediction fix enabled."
   params:
