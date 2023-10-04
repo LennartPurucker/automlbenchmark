@@ -45,5 +45,6 @@ fi
 
 PIP install s3fs
 PIP install "boto3==1.26.90"
+PIP install cir-model
 
 PY -c "from autogluon.tabular.version import __version__; print(__version__)" >> "${HERE}/.setup/installed"
