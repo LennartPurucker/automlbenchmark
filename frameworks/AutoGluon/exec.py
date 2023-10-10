@@ -63,6 +63,8 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para):
         mitigate_para = dict(refit_autogluon=True, select_on_holdout=True)
     elif so_mitigation == "ho_dynamic_stacking":
         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True)
+    elif so_mitigation == "ho_dynamic_stacking_limited":
+        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_limited=True)
     elif so_mitigation == "ho_ges_weights":
         mitigate_para = dict(refit_autogluon=True, ges_holdout=True)
     elif so_mitigation == "dynamic_clean_oof_predictions":

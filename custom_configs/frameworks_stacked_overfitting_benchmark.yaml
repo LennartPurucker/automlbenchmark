@@ -12,6 +12,13 @@ AutoGluon:
 #########################
 ### AutoGluon Default ###
 #########################
+AG_bq:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
 
 AG_no_stack:
   extends: AutoGluon
@@ -22,7 +29,6 @@ AG_no_stack:
     _leaderboard_test: True
     num_stack_levels: 0
 
-
 AG_stack:
   extends: AutoGluon
   description: "AutoGluon with stacking"
@@ -31,35 +37,6 @@ AG_stack:
     presets: best_quality
     _leaderboard_test: True
     num_stack_levels: 1
-
-#AG_heuristic_v2:
-#  extends: AutoGluon
-#  description: "AutoGluon with stacking but the final model is selected based on a heuristic from L1 xor L2."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "heuristic"
-#    num_stack_levels: 1
-#AG_ho_select:
-#  extends: AutoGluon
-#  description: "Select final model based on holdout data."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "ho_select"
-#    num_stack_levels: 1
-#
-#AG_ho_select_refit:
-#  extends: AutoGluon
-#  description: "Select based on holdout and refit."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "ho_select_refit"
-#    num_stack_levels: 1
 
 AG_ho_dynamic_stacking:
   extends: AutoGluon
@@ -71,87 +48,19 @@ AG_ho_dynamic_stacking:
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
 
-#AG_ho_ges_weights:
-#  extends: AutoGluon
-#  description: "Determine GES Weights based on holdout, then refit and use these weights for the final predictions."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "ho_ges_weights"
-#    num_stack_levels: 1
-
-#AG_stacking_proxy_v2:
-#  extends: AutoGluon
-#  description: "Determine whether to use stacking by proxy before running AG."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "proxy"
-#    num_stack_levels: 1
-#AG_stack_ho_dynamic_clean_oof:  #  (with bug and wrong implementation for RF/XT)
-#  extends: AutoGluon
-#  description: "Determine SO based on holdout and refit with or without clean oof prediction fix but always with stacking."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "dynamic_clean_oof_predictions"
-#    num_stack_levels: 1
-#
-#
-#AG_stack_clean_oof:  #  (with wrong implementation for RF/XT)
-#  extends: AutoGluon
-#  description: "AG_stack but clean oof prediction fix enabled."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    num_stack_levels: 1
-#    predictor_para:
-#      learner_kwargs:
-#        clean_oof_predictions: True
-#
-#
-#AG_stack_ho_dynamic_clean_oof_v2: # (deprecated as seems not promising as it is worse than not dynamic version of the fix)
-#  extends: AutoGluon
-#  description: "Determine SO based on holdout and refit with or without clean oof prediction fix but always with stacking."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    so_mitigation: "dynamic_clean_oof_predictions"
-#    num_stack_levels: 1
-
-AG_stack_clean_oof_v2:
+AG_ho_dynamic_stacking_limited:
   extends: AutoGluon
-  description: "AG_stack but clean oof prediction fix enabled."
+  description: "Determine SO based on holdout and refit with or without stacking."
   params:
-    _save_artifacts: ['leaderboard', 'info']
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
     presets: best_quality
     _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking_limited"
     num_stack_levels: 1
-    predictor_para:
-      learner_kwargs:
-        clean_oof_predictions: True
 
-
-#AG_stack_clean_oof_v3:
-#  extends: AutoGluon
-#  description: "AG_stack but clean oof prediction fix enabled (with 0/1 sample for NN models)."
-#  params:
-#    _save_artifacts: ['leaderboard', 'info']
-#    presets: best_quality
-#    _leaderboard_test: True
-#    num_stack_levels: 1
-#    predictor_para:
-#      learner_kwargs:
-#        clean_oof_predictions: True
-
-AG_stack_clean_oof_v4:
+AG_stack_clean_oof:
   extends: AutoGluon
-  description: "AG_stack but clean oof prediction fix enabled with CIR instead of IR."
+  description: "AG_stack but clean oof prediction fix enabled whereby either IR, CIR, or SIG calibration is used based on fold model type and base model type."
   params:
     _save_artifacts: ['leaderboard', 'info']
     presets: best_quality

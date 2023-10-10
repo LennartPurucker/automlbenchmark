@@ -22,8 +22,9 @@ def _verify_stacking_settings(use_stacking, fit_para):
 
 
 def use_holdout(
-        train_data, label, predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False, dynamic_stacking=False, dynamic_fix=False,
-        ges_holdout=False, holdout_seed=42, fix_predictor_para=None
+        train_data, label, predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False,
+        dynamic_stacking=False, dynamic_fix=False,
+        ges_holdout=False, holdout_seed=42, fix_predictor_para=None, dynamic_stacking_limited=False,
 ):
     """A function to run different configurations of AutoGluon with a holdout set to avoid stacked overfitting.
 
@@ -45,12 +46,25 @@ def use_holdout(
     # Get holdout
     classification_problem = predictor_para["problem_type"] in ["binary", "multiclass"]
     inner_train_data, outer_val_data = train_test_split(
-        train_data, test_size=1 / 9, random_state=holdout_seed, stratify=train_data[label] if classification_problem else None
+        train_data, test_size=1 / 9, random_state=holdout_seed,
+        stratify=train_data[label] if classification_problem else None
     )
+
+    time_limit = fit_para.pop("time_limit", 60)
+    if refit_autogluon:
+        if dynamic_stacking_limited:
+            time_limit_fit_1 = int(time_limit * 0.33)
+            time_limit_fit_2 = int(time_limit * 0.67)
+        else:
+            time_limit_fit_1 = time_limit
+            time_limit_fit_2 = time_limit
+    else:
+        time_limit_fit_1 = time_limit
+        time_limit_fit_2 = 0
 
     logger.info(f"Start running AutoGluon on subset of data")
     predictor = TabularPredictor(**predictor_para)
-    predictor.fit(train_data=inner_train_data, **fit_para)
+    predictor.fit(train_data=inner_train_data, time_limit=time_limit_fit_1, **fit_para)
 
     # -- Obtain info from holdout
     val_leaderboard = predictor.leaderboard(outer_val_data, silent=True).reset_index(drop=True)
@@ -65,8 +79,14 @@ def use_holdout(
         # Obtain best GES weights on holdout data
         ges_train_data = predictor.transform_features(outer_val_data.drop(columns=[label]))
         ges_label = predictor.transform_labels(outer_val_data[label])
-        l1_ges = predictor.fit_weighted_ensemble(base_models_level=1, new_data=[ges_train_data, ges_label], name_suffix="HOL1")[0]
-        l2_ges = predictor.fit_weighted_ensemble(base_models_level=2, new_data=[ges_train_data, ges_label], name_suffix="HOL2")[0]
+        l1_ges = \
+            predictor.fit_weighted_ensemble(base_models_level=1, new_data=[ges_train_data, ges_label],
+                                            name_suffix="HOL1")[
+                0]
+        l2_ges = \
+            predictor.fit_weighted_ensemble(base_models_level=2, new_data=[ges_train_data, ges_label],
+                                            name_suffix="HOL2")[
+                0]
         l1_ges = predictor._trainer.load_model(l1_ges)
         l2_ges = predictor._trainer.load_model(l2_ges)
 
@@ -96,7 +116,7 @@ def use_holdout(
         time.sleep(5)  # wait for the folder to be correctly deleted and log messages
 
         predictor = TabularPredictor(**predictor_para)
-        predictor.fit(train_data=train_data, **fit_para)
+        predictor.fit(train_data=train_data, time_limit=time_limit_fit_2, **fit_para)
 
     if select_on_holdout:
         predictor.set_model_best(best_model_on_holdout, save_trainer=True)
