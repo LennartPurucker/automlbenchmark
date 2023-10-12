@@ -50,11 +50,11 @@ def use_holdout(
         stratify=train_data[label] if classification_problem else None
     )
 
-    time_limit = fit_para.pop("time_limit", 60)
+    time_limit = fit_para.pop("time_limit", 60)  # in seconds
     if refit_autogluon:
         if dynamic_stacking_limited:
-            time_limit_fit_1 = int(time_limit * 0.33)
-            time_limit_fit_2 = int(time_limit * 0.67)
+            time_start = time.time()
+            time_limit_fit_1 = int(time_limit * 1/4)
         else:
             time_limit_fit_1 = time_limit
             time_limit_fit_2 = time_limit
@@ -96,6 +96,11 @@ def use_holdout(
         else:
             ho_weights = l2_ges._get_model_weights()
             weights_level = 3
+
+    if refit_autogluon and dynamic_stacking_limited:
+        time_spend_fit_1 = int(time.time() - time_start)
+        time_limit_fit_2 = time_limit - time_spend_fit_1
+        logger.info(f"Spend {time_spend_fit_1} seconds for first fit. Dynamic Refit for: {time_limit_fit_2} seconds (non-dynamic would have been: {int(time_limit*3/4)})")
 
     if dynamic_stacking:
         logger.info(f"Check if stacking used for refit or not")

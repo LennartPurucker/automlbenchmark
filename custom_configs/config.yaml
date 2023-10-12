@@ -38,7 +38,7 @@ aws:                    # configuration namespace for AWS mode.
 
   s3:                               # sub-namespace for AWS S3 service.
     bucket: automl-benchmark-ag       # must be unique im whole Amazon s3, max 40 chars, and include only numbers, lowercase characters and hyphens.
-    root_key: ec2/amlb_purucker/2023_10_11_purucker/  # TODO: rename for different benchmark runs
+    root_key: ec2/amlb_purucker/2023_10_12_purucker/   # TODO: rename for different benchmark runs
 
   ec2:
     instance_type:                       #
