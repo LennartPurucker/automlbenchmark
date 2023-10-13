@@ -69,3 +69,14 @@ AG_stack_clean_oof:
     predictor_para:
       learner_kwargs:
         clean_oof_predictions: True
+
+AG_DS_full_l3:
+  extends: AutoGluon
+  description: "Best: Dynamic Stacking. Plus all trained models for l3 weighted ensemble."
+  params:
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking"
+    num_stack_levels: 1
+    ag_args_fit: {'full_last_weighted_ensemble': True}
