@@ -1,4 +1,5 @@
 from shutil import rmtree
+import gc
 import logging
 import pandas as pd
 import time
@@ -19,6 +20,50 @@ def _verify_stacking_settings(use_stacking, fit_para):
         fit_para["num_stack_levels"] = 0
 
     return fit_para
+
+
+def _first_fit(train_data, label, classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para,
+               refit_autogluon):
+    inner_train_data, outer_val_data = train_test_split(
+        train_data, test_size=1 / 9, random_state=holdout_seed,
+        stratify=train_data[label] if classification_problem else None
+    )
+
+    # Remove memory footprint
+    del train_data
+    time.sleep(1)
+    gc.collect()
+
+    logger.info(f"Start running AutoGluon on subset of data")
+    predictor = TabularPredictor(**predictor_para)
+    predictor.fit(train_data=inner_train_data, time_limit=time_limit_fit_1, **fit_para)
+
+    # -- Obtain info from holdout
+    val_leaderboard = predictor.leaderboard(outer_val_data, silent=True).reset_index(drop=True)
+    best_model_on_holdout = val_leaderboard.loc[val_leaderboard["score_test"].idxmax(), "model"]
+    stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
+    with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", 1000):
+        logger.info(val_leaderboard.sort_values(by="score_val", ascending=False))
+
+    logger.info(f"Stacked overfitting in this run: {stacked_overfitting}")
+
+    if refit_autogluon:
+        rmtree(predictor.path)  # clean up
+        time.sleep(5)  # wait for the folder to be correctly deleted and log messages
+        del predictor
+        del inner_train_data
+        del outer_val_data
+        time.sleep(1)  # Wait for system calls
+        gc.collect()
+        return None, best_model_on_holdout, stacked_overfitting, val_leaderboard
+    else:
+        return predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard
+
+
+def _second_fit(train_data, time_limit_fit_2, predictor_para, fit_para):
+    predictor = TabularPredictor(**predictor_para)
+    predictor.fit(train_data=train_data, time_limit=time_limit_fit_2, **fit_para)
+    return predictor
 
 
 def use_holdout(
@@ -45,16 +90,12 @@ def use_holdout(
 
     # Get holdout
     classification_problem = predictor_para["problem_type"] in ["binary", "multiclass"]
-    inner_train_data, outer_val_data = train_test_split(
-        train_data, test_size=1 / 9, random_state=holdout_seed,
-        stratify=train_data[label] if classification_problem else None
-    )
 
     time_limit = fit_para.pop("time_limit", 60)  # in seconds
     if refit_autogluon:
         if dynamic_stacking_limited:
             time_start = time.time()
-            time_limit_fit_1 = int(time_limit * 1/4)
+            time_limit_fit_1 = int(time_limit * 1 / 4)
         else:
             time_limit_fit_1 = time_limit
             time_limit_fit_2 = time_limit
@@ -62,45 +103,17 @@ def use_holdout(
         time_limit_fit_1 = time_limit
         time_limit_fit_2 = 0
 
-    logger.info(f"Start running AutoGluon on subset of data")
-    predictor = TabularPredictor(**predictor_para)
-    predictor.fit(train_data=inner_train_data, time_limit=time_limit_fit_1, **fit_para)
-
-    # -- Obtain info from holdout
-    val_leaderboard = predictor.leaderboard(outer_val_data, silent=True).reset_index(drop=True)
-    best_model_on_holdout = val_leaderboard.loc[val_leaderboard["score_test"].idxmax(), "model"]
-    stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
-    with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", 1000):
-        logger.info(val_leaderboard.sort_values(by="score_val", ascending=False))
-
-    logger.info(f"Stacked overfitting in this run: {stacked_overfitting}")
-
-    if ges_holdout:
-        # Obtain best GES weights on holdout data
-        ges_train_data = predictor.transform_features(outer_val_data.drop(columns=[label]))
-        ges_label = predictor.transform_labels(outer_val_data[label])
-        l1_ges = \
-            predictor.fit_weighted_ensemble(base_models_level=1, new_data=[ges_train_data, ges_label],
-                                            name_suffix="HOL1")[
-                0]
-        l2_ges = \
-            predictor.fit_weighted_ensemble(base_models_level=2, new_data=[ges_train_data, ges_label],
-                                            name_suffix="HOL2")[
-                0]
-        l1_ges = predictor._trainer.load_model(l1_ges)
-        l2_ges = predictor._trainer.load_model(l2_ges)
-
-        if l1_ges.val_score >= l2_ges.val_score:  # if they are equal, we prefer the simpler model (e.g. lower layer)
-            ho_weights = l1_ges._get_model_weights()
-            weights_level = 2
-        else:
-            ho_weights = l2_ges._get_model_weights()
-            weights_level = 3
+    predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard = _first_fit(train_data, label,
+                                                                                        classification_problem,
+                                                                                        holdout_seed, predictor_para,
+                                                                                        time_limit_fit_1, fit_para,
+                                                                                        refit_autogluon)
 
     if refit_autogluon and dynamic_stacking_limited:
         time_spend_fit_1 = int(time.time() - time_start)
         time_limit_fit_2 = time_limit - time_spend_fit_1
-        logger.info(f"Spend {time_spend_fit_1} seconds for first fit. Dynamic Refit for: {time_limit_fit_2} seconds (non-dynamic would have been: {int(time_limit*3/4)})")
+        logger.info(
+            f"Spend {time_spend_fit_1} seconds for first fit. Dynamic Refit for: {time_limit_fit_2} seconds (non-dynamic would have been: {int(time_limit * 3 / 4)})")
 
     if dynamic_stacking:
         logger.info(f"Check if stacking used for refit or not")
@@ -115,33 +128,49 @@ def use_holdout(
     # Refit and reselect
     if refit_autogluon:
         logger.info(f"Refit with the following configs, predictor: {predictor_para} and fit: {fit_para}")
-
-        rmtree(predictor.path)  # clean up
-        del predictor
-        time.sleep(5)  # wait for the folder to be correctly deleted and log messages
-
-        predictor = TabularPredictor(**predictor_para)
-        predictor.fit(train_data=train_data, time_limit=time_limit_fit_2, **fit_para)
+        predictor = _second_fit(train_data, time_limit_fit_2, predictor_para, fit_para)
 
     if select_on_holdout:
         predictor.set_model_best(best_model_on_holdout, save_trainer=True)
 
-    if ges_holdout:
-        final_ges = f"WeightedEnsemble_L{weights_level}"
-
-        bm_names = []
-        weights = []
-        for bm_name, weight in ho_weights.items():
-            bm_names.append(bm_name)
-            weights.append(weight)
-
-        # Update weights of GES
-        f_ges = predictor._trainer.load_model(final_ges)
-        f_ges.models[0].base_model_names = bm_names
-        f_ges.models[0].weights_ = weights
-        predictor._trainer.save_model(f_ges)
-
-        # Set GES to be best model
-        predictor.set_model_best(final_ges, save_trainer=True)
-
     return predictor, val_leaderboard[["model", "score_test"]].rename({"score_test": "unbiased_score_val"}, axis=1)
+
+# ! ---- old
+#     if ges_holdout:
+#         # Obtain best GES weights on holdout data
+#         ges_train_data = predictor.transform_features(outer_val_data.drop(columns=[label]))
+#         ges_label = predictor.transform_labels(outer_val_data[label])
+#         l1_ges = \
+#             predictor.fit_weighted_ensemble(base_models_level=1, new_data=[ges_train_data, ges_label],
+#                                             name_suffix="HOL1")[
+#                 0]
+#         l2_ges = \
+#             predictor.fit_weighted_ensemble(base_models_level=2, new_data=[ges_train_data, ges_label],
+#                                             name_suffix="HOL2")[
+#                 0]
+#         l1_ges = predictor._trainer.load_model(l1_ges)
+#         l2_ges = predictor._trainer.load_model(l2_ges)
+#
+#         if l1_ges.val_score >= l2_ges.val_score:  # if they are equal, we prefer the simpler model (e.g. lower layer)
+#             ho_weights = l1_ges._get_model_weights()
+#             weights_level = 2
+#         else:
+#             ho_weights = l2_ges._get_model_weights()
+#             weights_level = 3
+#     if ges_holdout:
+#         final_ges = f"WeightedEnsemble_L{weights_level}"
+#
+#         bm_names = []
+#         weights = []
+#         for bm_name, weight in ho_weights.items():
+#             bm_names.append(bm_name)
+#             weights.append(weight)
+#
+#         # Update weights of GES
+#         f_ges = predictor._trainer.load_model(final_ges)
+#         f_ges.models[0].base_model_names = bm_names
+#         f_ges.models[0].weights_ = weights
+#         predictor._trainer.save_model(f_ges)
+#
+#         # Set GES to be best model
+#         predictor.set_model_best(final_ges, save_trainer=True)
