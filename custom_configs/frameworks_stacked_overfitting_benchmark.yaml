@@ -80,3 +80,16 @@ AG_DS_full_l3:
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
     ag_args_fit: {'full_last_weighted_ensemble': True}
+
+
+AG_DS_FL3_dynamic_nested_cv:
+  extends: AutoGluon
+  description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus Dynamic Nested Cross-Validation."
+  params:
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking"
+    dynamic_nested_cv: True
+    num_stack_levels: 1
+    ag_args_fit: {'full_last_weighted_ensemble': True}

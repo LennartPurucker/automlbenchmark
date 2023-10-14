@@ -29,7 +29,7 @@ from ag_utils.zs_portfolio import get_hyperparameters_from_zeroshot_framework
 log = logging.getLogger(__name__)
 
 
-def _fit_autogluon(so_mitigation, predictor_para, fit_para):
+def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=False):
     fit_default = so_mitigation is None
     # not_supported_pt = ("clean_oof_predictions" in so_mitigation) and (predictor_para["problem_type"] in ["multiclass", "regression"]) # or not_supported_pt
     if fit_default:
@@ -38,6 +38,21 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para):
 
     train_data = pd.read_parquet(fit_para.get("train_data"))
     label = predictor_para["label"]
+
+    if dynamic_nested_cv:
+        _rows, _columns = train_data.shape
+        _columns -= 1  # subtract label count
+        _classes = 1 if predictor_para['problem_type'] != "multiclass" else len(train_data[label].unique())
+        complexity = _rows * (_columns + _classes)
+        log.info(f"Found Complexity: {complexity}.")
+        if complexity <= 50000:
+            log.info("Nested CV enabled.")
+
+            if 'ag_args_ensemble' not in fit_para:
+                fit_para['ag_args_ensemble'] = dict()
+
+            fit_para['ag_args_ensemble']['nested'] = True
+            fit_para['ag_args_ensemble']['nested_num_folds'] = 8
 
     if so_mitigation == "proxy":
         log.info("Fit proxy.")
@@ -109,6 +124,7 @@ def run(dataset, config):
     training_params = {k: v for k, v in config.framework_params.items() if not k.startswith("_")}
     presets = training_params.get("presets", [])
     so_mitigation = training_params.pop("so_mitigation", None)
+    dynamic_nested_cv = training_params.pop("dynamic_nested_cv", False)
     add_predictor_paras = training_params.pop("predictor_para", dict())
 
     presets = presets if isinstance(presets, list) else [presets]
@@ -157,7 +173,7 @@ def run(dataset, config):
             # ),
             **training_params,
         )
-        predictor, ho_leaderboard = _fit_autogluon(so_mitigation, predictor_para, fit_para)
+        predictor, ho_leaderboard = _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv)
 
     # FIXME how to save ho_leaderboard?
     artifact_saver = ArtifactSaver(predictor=predictor, config=config)
