@@ -4,9 +4,11 @@ import logging
 import pandas as pd
 import time
 from sklearn.model_selection import train_test_split
+import concurrent.futures
 
 from autogluon.tabular import TabularPredictor
 from stacked_overfitting_mitigation.utils import _check_stacked_overfitting_from_leaderboard
+from stacked_overfitting_mitigation.oof_selection import get_preselected_fit_hps
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +24,10 @@ def _verify_stacking_settings(use_stacking, fit_para):
     return fit_para
 
 
-def _first_fit(train_data, label, classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para,
-               refit_autogluon):
+def _first_fit(para):
+    # due to multiprocessing code
+    train_data, label, classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking = para
+
     inner_train_data, outer_val_data = train_test_split(
         train_data, test_size=1 / 9, random_state=holdout_seed,
         stratify=train_data[label] if classification_problem else None
@@ -47,6 +51,15 @@ def _first_fit(train_data, label, classification_problem, holdout_seed, predicto
 
     logger.info(f"Stacked overfitting in this run: {stacked_overfitting}")
 
+    if select_oof_predictions:
+        model_hps, disable_stacking, importance_df = get_preselected_fit_hps(outer_val_data, label, predictor)
+    else:
+        model_hps, disable_stacking, importance_df = 'default', False, None
+
+    # FIXME: move this up later but keep here for now such that we get import df once for all cases
+    if select_oof_predictions and (not (stacked_overfitting and dynamic_stacking)):
+        model_hps, disable_stacking = 'default', False
+
     if refit_autogluon:
         rmtree(predictor.path)  # clean up
         time.sleep(5)  # wait for the folder to be correctly deleted and log messages
@@ -55,9 +68,9 @@ def _first_fit(train_data, label, classification_problem, holdout_seed, predicto
         del outer_val_data
         time.sleep(1)  # Wait for system calls
         gc.collect()
-        return None, best_model_on_holdout, stacked_overfitting, val_leaderboard
-    else:
-        return predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard
+        predictor = None
+
+    return predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard, model_hps, disable_stacking, importance_df
 
 
 def _second_fit(train_data, time_limit_fit_2, predictor_para, fit_para):
@@ -70,6 +83,7 @@ def use_holdout(
         train_data, label, predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False,
         dynamic_stacking=False, dynamic_fix=False,
         ges_holdout=False, holdout_seed=42, fix_predictor_para=None, dynamic_stacking_limited=False,
+        select_oof_predictions=False,
 ):
     """A function to run different configurations of AutoGluon with a holdout set to avoid stacked overfitting.
 
@@ -103,11 +117,15 @@ def use_holdout(
         time_limit_fit_1 = time_limit
         time_limit_fit_2 = 0
 
-    predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard = _first_fit(train_data, label,
-                                                                                        classification_problem,
-                                                                                        holdout_seed, predictor_para,
-                                                                                        time_limit_fit_1, fit_para,
-                                                                                        refit_autogluon)
+    first_fit_para = [train_data, label, classification_problem, holdout_seed, predictor_para, time_limit_fit_1,
+                      fit_para,
+                      refit_autogluon, select_oof_predictions, dynamic_stacking]
+    # first fit in subprocess for memory safety
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        f = executor.submit(_first_fit, first_fit_para)
+        ret = f.result()
+
+    predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard, model_hps, disable_stacking, importance_df = ret
 
     if refit_autogluon and dynamic_stacking_limited:
         time_spend_fit_1 = int(time.time() - time_start)
@@ -125,6 +143,13 @@ def use_holdout(
         predictor_para = fix_predictor_para
         fit_para = _verify_stacking_settings(use_stacking=True, fit_para=fit_para)
 
+    if select_oof_predictions:
+        fit_para['hyperparameters'] = model_hps
+
+        # Disable stacking if no need for it due to selection
+        if disable_stacking:
+            fit_para = _verify_stacking_settings(use_stacking=False, fit_para=fit_para)
+
     # Refit and reselect
     if refit_autogluon:
         logger.info(f"Refit with the following configs, predictor: {predictor_para} and fit: {fit_para}")
@@ -133,7 +158,7 @@ def use_holdout(
     if select_on_holdout:
         predictor.set_model_best(best_model_on_holdout, save_trainer=True)
 
-    return predictor, val_leaderboard[["model", "score_test"]].rename({"score_test": "unbiased_score_val"}, axis=1)
+    return predictor, val_leaderboard[["model", "score_test"]].rename({"score_test": "unbiased_score_val"}, axis=1), importance_df
 
 # ! ---- old
 #     if ges_holdout:

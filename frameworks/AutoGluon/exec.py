@@ -78,6 +78,8 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=Fa
         mitigate_para = dict(refit_autogluon=True, select_on_holdout=True)
     elif so_mitigation == "ho_dynamic_stacking":
         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True)
+    elif so_mitigation == "ho_dynamic_stacking_select_oof":
+        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, select_oof_predictions=True)
     elif so_mitigation == "ho_dynamic_stacking_limited":
         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_limited=True)
     elif so_mitigation == "ho_ges_weights":
@@ -89,9 +91,9 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=Fa
     else:
         raise ValueError(f"Unknown SO mitigation: {so_mitigation}")
 
-    predictor, ho_lb = use_holdout(train_data, label, predictor_para, fit_para, **mitigate_para)
+    predictor, ho_lb, ho_importance_df = use_holdout(train_data, label, predictor_para, fit_para, **mitigate_para)
 
-    return predictor, ho_lb
+    return predictor, ho_lb.reset_index(), ho_importance_df.reset_index()
 
 
 def _fit_autogluon_default(predictor_para, fit_para):
@@ -173,7 +175,7 @@ def run(dataset, config):
             # ),
             **training_params,
         )
-        predictor, ho_leaderboard = _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv)
+        predictor, ho_leaderboard, ho_oof_importance = _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv)
 
     # FIXME how to save ho_leaderboard?
     artifact_saver = ArtifactSaver(predictor=predictor, config=config)
@@ -190,7 +192,7 @@ def run(dataset, config):
                 log.info(model_failures_df)
     else:
         model_failures_df = None
-    artifact_saver.cache_post_fit(model_failures_df=model_failures_df)
+    artifact_saver.cache_post_fit(model_failures_df=model_failures_df, ho_leaderboard=ho_leaderboard, ho_oof_importance=ho_oof_importance)
 
     # Persist model in memory that is going to be predicting to get correct inference latency
     # max_memory=0.4 will be future default: https://github.com/autogluon/autogluon/pull/3338

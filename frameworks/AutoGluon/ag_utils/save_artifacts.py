@@ -36,6 +36,14 @@ class ArtifactSaver:
         return get_save_path(self.config, "leaderboard.csv")
 
     @property
+    def path_ho_leaderboard(self) -> str:
+        return get_save_path(self.config, "ho_leaderboard.csv")
+
+    @property
+    def path_ho_oof_importance(self) -> str:
+        return get_save_path(self.config, "ho_oof_importance.csv")
+
+    @property
     def path_info_dir(self) -> str:
         return get_save_path(self.config, "info", as_dir=True)
 
@@ -70,6 +78,12 @@ class ArtifactSaver:
     def save_leaderboard(self, leaderboard: pd.DataFrame):
         save_pd.save(path=self.path_leaderboard, df=leaderboard)
 
+    def save_ho_leaderboard(self, ho_leaderboard: pd.DataFrame):
+        save_pd.save(path=self.path_ho_leaderboard, df=ho_leaderboard)
+
+    def save_ho_oof_importance(self, ho_oof_importance: pd.DataFrame):
+        save_pd.save(path=self.path_ho_oof_importance, df=ho_oof_importance)
+
     def save_info(self):
         ag_size_df = self.predictor.get_size_disk_per_file().to_frame().reset_index(names='file')
         save_pd.save(path=self.path_file_sizes, df=ag_size_df)
@@ -94,11 +108,18 @@ class ArtifactSaver:
             shutil.rmtree(os.path.join(self.predictor.path, "utils"), ignore_errors=True)
         zip_path(self.predictor.path, self.path_predictor)
 
-    def cache_post_fit(self, model_failures_df: pd.DataFrame | None):
+    def cache_post_fit(self, model_failures_df: pd.DataFrame | None, ho_leaderboard: pd.DataFrame | None = None,
+                       ho_oof_importance: pd.DataFrame | None = None):
         artifacts = self.artifacts
         try:
             if 'model_failures' in artifacts and model_failures_df is not None:
                 self.save_model_failures(model_failures_df=model_failures_df)
+
+            if 'ho_leaderboard' in artifacts and ho_leaderboard is not None:
+                self.save_ho_leaderboard(ho_leaderboard=ho_leaderboard)
+
+            if 'ho_oof_importance' in artifacts and ho_oof_importance is not None:
+                self.save_ho_oof_importance(ho_oof_importance=ho_oof_importance)
         except:
             log.warning("Error when saving post-fit artifacts.", exc_info=True)
 
@@ -122,11 +143,19 @@ class ArtifactSaver:
         except Exception:
             log.warning("Error when saving post-predict artifacts.", exc_info=True)
 
-def save_artifacts(predictor: TabularPredictor, leaderboard: pd.DataFrame, config, test_data: pd.DataFrame):
+
+def save_artifacts(predictor: TabularPredictor, leaderboard: pd.DataFrame, config, test_data: pd.DataFrame,
+                   ho_leaderboard: pd.DataFrame, ho_oof_importance: pd.DataFrame):
     artifacts = config.framework_params.get('_save_artifacts', ['leaderboard'])
     try:
         if 'leaderboard' in artifacts:
             save_pd.save(path=get_save_path(config, "leaderboard.csv"), df=leaderboard)
+
+        if 'ho_leaderboard' in artifacts:
+            save_pd.save(path=get_save_path(config, "ho_leaderboard.csv"), df=ho_leaderboard)
+
+        if 'ho_oof_importance' in artifacts:
+            save_pd.save(path=get_save_path(config, "ho_oof_importance.csv"), df=ho_oof_importance)
 
         if 'info' in artifacts:
             info_path = get_save_path(config, 'info', as_dir=True)
