@@ -136,7 +136,7 @@ AG_DS_FL3_filter_oof:
 
 AG_DS_FL3_memory_fix:
   extends: AutoGluon
-  description: "Best: Dynamic Stacking. Plus memory fix between first and second fit."
+  description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus memory fix between first and second fit."
   params:
     _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
     presets: best_quality
@@ -144,3 +144,17 @@ AG_DS_FL3_memory_fix:
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
     ag_args_fit: {'full_last_weighted_ensemble': True}
+
+AG_DS_FL3_oof_calibration:
+  extends: AutoGluon
+  description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus probability calibration (using the clean OOF fix)."
+  params:
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking"
+    num_stack_levels: 1
+    ag_args_fit: {'full_last_weighted_ensemble': True}
+    predictor_para:
+      learner_kwargs:
+        clean_oof_predictions: True
