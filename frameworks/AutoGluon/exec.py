@@ -33,11 +33,10 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=Fa
     fit_default = so_mitigation is None
     if fit_default:
         log.info("Fit Default.")
-        return _fit_autogluon_default(predictor_para, fit_para), None
+        return _fit_autogluon_default(predictor_para, fit_para), None, None
 
     if dynamic_nested_cv:
-        from stacked_overfitting_mitigation.utils import get_label_train_data
-        train_data, label, fit_para = get_label_train_data(fit_para, predictor_para)
+        train_data, label = pd.read_parquet(fit_para.get("train_data")), predictor_para["label"]
         _rows, _columns = train_data.shape
         _columns -= 1  # subtract label count
         _classes = 1 if predictor_para['problem_type'] != "multiclass" else len(train_data[label].unique())
@@ -105,6 +104,17 @@ def run(dataset, config):
     so_mitigation = training_params.pop("so_mitigation", None)
     dynamic_nested_cv = training_params.pop("dynamic_nested_cv", False)
     add_predictor_paras = training_params.pop("predictor_para", dict())
+
+    # -- Code for special HPs
+    special_hps = config.framework_params.get("_special_hps", None)
+    if special_hps is not None:
+        from autogluon.tabular.configs.hyperparameter_configs import hyperparameter_config_dict
+        _hps = hyperparameter_config_dict['default'].copy()
+
+        for special_hp_key, special_hp_key_val in special_hps:
+            _hps[special_hp_key] = special_hp_key_val
+
+        training_params["hyperparameters"] = _hps
 
     presets = presets if isinstance(presets, list) else [presets]
     if preset_with_refit_full := (set(presets) & {"good_quality", "high_quality"}):

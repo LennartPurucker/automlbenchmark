@@ -20,6 +20,24 @@ AG_bq:
     presets: best_quality
     _leaderboard_test: True
 
+AG_bq_reg_rerun:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default rerun for regression with current version of branch (including memory fix)"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+
+AG_bq_no_clipping:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default without FastAI NN clipping"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    _special_hps: [['FASTAI', {'clipping': False}]]
+
+
 AG_no_stack:
   extends: AutoGluon
   description: "AutoGluon without stacking"
