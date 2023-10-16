@@ -104,3 +104,14 @@ AG_DS_FL3_add_QDO_ES:
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
     ag_args_fit: {'full_last_weighted_ensemble': True}
+
+AG_DS_FL3_filter_oof:
+  extends: AutoGluon
+  description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus filter OOF at L2."
+  params:
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard', 'ho_oof_importance']
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking_select_oof"
+    num_stack_levels: 1
+    ag_args_fit: {'full_last_weighted_ensemble': True}
