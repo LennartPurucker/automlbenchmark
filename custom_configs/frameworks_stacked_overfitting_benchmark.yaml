@@ -9,9 +9,6 @@ AutoGluon:
     _save_artifacts: ['leaderboard', 'info']
     _leaderboard_test: True
 
-#########################
-### AutoGluon Default ###
-#########################
 AG_bq:
   extends: AutoGluon
   description: "AutoGluon Best Quality Default"
@@ -158,3 +155,15 @@ AG_DS_FL3_oof_calibration:
     predictor_para:
       learner_kwargs:
         clean_oof_predictions: True
+
+AG_DS_FL3_cv_instead_child_oof:
+  extends: AutoGluon
+  description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus using 1-repeat k-fold cross-validation for KNN, RF, and XT instead of OOB / LOO."
+  params:
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking"
+    num_stack_levels: 1
+    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_ensemble: {'use_cv_instead_of_child_oof': True}
