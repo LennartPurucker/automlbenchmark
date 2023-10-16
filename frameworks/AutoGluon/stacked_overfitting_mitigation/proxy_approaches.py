@@ -89,3 +89,12 @@ def verify_stacking_settings(use_stacking, fit_para):
 
     return fit_para
 
+# !old --- usage
+#     if so_mitigation == "proxy":
+#         train_data, label, fit_para = get_label_train_data(fit_para, predictor_para)
+#         log.info("Fit proxy.")
+#         from stacked_overfitting_mitigation.proxy_approaches import determine_stacked_overfitting, verify_stacking_settings
+#
+#         use_stacking = determine_stacked_overfitting(train_data, label, predictor_para["problem_type"])
+#         fit_para = verify_stacking_settings(use_stacking, fit_para)
+#         return _fit_autogluon_default(predictor_para, fit_para), None

@@ -1,5 +1,5 @@
 import numpy as np
-
+import pandas as pd
 
 def get_best_val_models(leaderboard):
     leaderboard = leaderboard.copy()
@@ -46,3 +46,12 @@ def _check_stacked_overfitting_from_leaderboard(leaderboard):
         stacked_overfitting = False
 
     return stacked_overfitting, score_l1_oof, score_l2_oof, score_l1_test, score_l2_test
+
+
+def get_label_train_data(fit_para, predictor_para):
+    fit_para = fit_para.copy()
+    train_data = pd.read_parquet(fit_para.get("train_data"))
+    label = predictor_para["label"]
+    fit_para.pop("train_data")
+
+    return train_data, label, fit_para

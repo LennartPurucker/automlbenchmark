@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import concurrent.futures
 
 from autogluon.tabular import TabularPredictor
-from stacked_overfitting_mitigation.utils import _check_stacked_overfitting_from_leaderboard
+from stacked_overfitting_mitigation.utils import _check_stacked_overfitting_from_leaderboard, get_label_train_data
 from stacked_overfitting_mitigation.oof_selection import get_preselected_fit_hps
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,9 @@ def _verify_stacking_settings(use_stacking, fit_para):
 
 def _first_fit(para):
     # due to multiprocessing code
-    train_data, label, classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking = para
+    classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking = para
+
+    train_data, label, fit_para = get_label_train_data(fit_para, predictor_para)
 
     inner_train_data, outer_val_data = train_test_split(
         train_data, test_size=1 / 9, random_state=holdout_seed,
@@ -48,6 +50,7 @@ def _first_fit(para):
     stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
     with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", 1000):
         logger.info(val_leaderboard.sort_values(by="score_val", ascending=False))
+    val_leaderboard = val_leaderboard.reset_index()
 
     logger.info(f"Stacked overfitting in this run: {stacked_overfitting}")
 
@@ -73,18 +76,17 @@ def _first_fit(para):
     return predictor, best_model_on_holdout, stacked_overfitting, val_leaderboard, model_hps, disable_stacking, importance_df
 
 
-def _second_fit(train_data, time_limit_fit_2, predictor_para, fit_para):
+def _second_fit(time_limit_fit_2, predictor_para, fit_para):
     predictor = TabularPredictor(**predictor_para)
-    predictor.fit(train_data=train_data, time_limit=time_limit_fit_2, **fit_para)
+    predictor.fit(time_limit=time_limit_fit_2, **fit_para)
     return predictor
 
 
-def use_holdout(
-        train_data, label, predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False,
-        dynamic_stacking=False, dynamic_fix=False,
-        ges_holdout=False, holdout_seed=42, fix_predictor_para=None, dynamic_stacking_limited=False,
-        select_oof_predictions=False,
-):
+def use_holdout(predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False,
+                dynamic_stacking=False, dynamic_fix=False,
+                ges_holdout=False, holdout_seed=42, fix_predictor_para=None, dynamic_stacking_limited=False,
+                select_oof_predictions=False,
+                ):
     """A function to run different configurations of AutoGluon with a holdout set to avoid stacked overfitting.
 
 
@@ -96,10 +98,16 @@ def use_holdout(
         If True, we select and set the best model based on the score on the holdout data. If we refit, we stick to the selection from the holdout data.
     dynamic_stacking
         If True, we dynamic select whether to use stacking for the refit based on whether we observed stacked overfitting on the holdout data.
-    ges_holdout
+    dynamic_fix
+        If True, we dynamically enable a fix if we spotted stacked overfitting.
+    ges_holdout (!OLD)
         If True, we compute a weight vector, using greedy ensemble selection (GES), on the holdout data. Moreover, we set the best model to the
         weighted ensemble with this weight vector. Note, we check both the L2 and L3 weighted ensemble and use the better one in the end.
         If we refit, we stick to the weights computed on the holdout data.
+    dynamic_stacking_limited
+        Limit dynamic stacking to 4h in total.
+    select_oof_predictions
+        Compute feature importance of OOF predictions and filter useless/hurtful OOF prediction columns.
     """
 
     # Get holdout
@@ -117,9 +125,7 @@ def use_holdout(
         time_limit_fit_1 = time_limit
         time_limit_fit_2 = 0
 
-    first_fit_para = [train_data, label, classification_problem, holdout_seed, predictor_para, time_limit_fit_1,
-                      fit_para,
-                      refit_autogluon, select_oof_predictions, dynamic_stacking]
+    first_fit_para = [classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking]
     # first fit in subprocess for memory safety
     with concurrent.futures.ProcessPoolExecutor() as executor:
         f = executor.submit(_first_fit, first_fit_para)
@@ -153,7 +159,7 @@ def use_holdout(
     # Refit and reselect
     if refit_autogluon:
         logger.info(f"Refit with the following configs, predictor: {predictor_para} and fit: {fit_para}")
-        predictor = _second_fit(train_data, time_limit_fit_2, predictor_para, fit_para)
+        predictor = _second_fit(time_limit_fit_2, predictor_para, fit_para)
 
     if select_on_holdout:
         predictor.set_model_best(best_model_on_holdout, save_trainer=True)
@@ -199,3 +205,29 @@ def use_holdout(
 #
 #         # Set GES to be best model
 #         predictor.set_model_best(final_ges, save_trainer=True)
+
+
+# !old --- usage
+#     # not_supported_pt = ("clean_oof_predictions" in so_mitigation) and (predictor_para["problem_type"] in ["multiclass", "regression"]) # or not_supported_pt
+#     from stacked_overfitting_mitigation.holdout_approaches import use_holdout
+#
+#     if so_mitigation == "ho_select":
+#         mitigate_para = dict(select_on_holdout=True)
+#     elif so_mitigation == "ho_select_refit":
+#         mitigate_para = dict(refit_autogluon=True, select_on_holdout=True)
+#     elif so_mitigation == "ho_dynamic_stacking":
+#         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True)
+#     elif so_mitigation == "ho_dynamic_stacking_select_oof":
+#         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, select_oof_predictions=True)
+#     elif so_mitigation == "ho_dynamic_stacking_limited":
+#         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_limited=True)
+#     elif so_mitigation == "ho_ges_weights":
+#         mitigate_para = dict(refit_autogluon=True, ges_holdout=True)
+#     elif so_mitigation == "dynamic_clean_oof_predictions":
+#         fix_predictor_para = predictor_para.copy()
+#         fix_predictor_para["learner_kwargs"] = dict(clean_oof_predictions=True)
+#         mitigate_para = dict(refit_autogluon=True, dynamic_fix=True, fix_predictor_para=fix_predictor_para)
+#     else:
+#         raise ValueError(f"Unknown SO mitigation: {so_mitigation}")
+#
+#     predictor, ho_lb, ho_importance_df = use_holdout(predictor_para, fit_para, **mitigate_para)

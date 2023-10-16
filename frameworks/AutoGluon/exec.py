@@ -31,15 +31,13 @@ log = logging.getLogger(__name__)
 
 def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=False):
     fit_default = so_mitigation is None
-    # not_supported_pt = ("clean_oof_predictions" in so_mitigation) and (predictor_para["problem_type"] in ["multiclass", "regression"]) # or not_supported_pt
     if fit_default:
         log.info("Fit Default.")
         return _fit_autogluon_default(predictor_para, fit_para), None
 
-    train_data = pd.read_parquet(fit_para.get("train_data"))
-    label = predictor_para["label"]
-
     if dynamic_nested_cv:
+        from stacked_overfitting_mitigation.utils import get_label_train_data
+        train_data, label, fit_para = get_label_train_data(fit_para, predictor_para)
         _rows, _columns = train_data.shape
         _columns -= 1  # subtract label count
         _classes = 1 if predictor_para['problem_type'] != "multiclass" else len(train_data[label].unique())
@@ -54,22 +52,7 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=Fa
             fit_para['ag_args_ensemble']['nested'] = True
             fit_para['ag_args_ensemble']['nested_num_folds'] = 8
 
-    if so_mitigation == "proxy":
-        log.info("Fit proxy.")
-        from stacked_overfitting_mitigation.proxy_approaches import determine_stacked_overfitting, verify_stacking_settings
-
-        use_stacking = determine_stacked_overfitting(train_data, label, predictor_para["problem_type"])
-        fit_para = verify_stacking_settings(use_stacking, fit_para)
-        return _fit_autogluon_default(predictor_para, fit_para), None
-
-    # remove for other methods as they set train data manually
-    fit_para.pop("train_data")
     log.info(f"Fit {so_mitigation}.")
-
-    if so_mitigation == "heuristic":
-        from stacked_overfitting_mitigation.heuristic_approaches import no_holdout
-        return no_holdout(train_data, label, predictor_para, fit_para), None
-
     from stacked_overfitting_mitigation.holdout_approaches import use_holdout
 
     if so_mitigation == "ho_select":
@@ -82,18 +65,12 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=Fa
         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, select_oof_predictions=True)
     elif so_mitigation == "ho_dynamic_stacking_limited":
         mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_limited=True)
-    elif so_mitigation == "ho_ges_weights":
-        mitigate_para = dict(refit_autogluon=True, ges_holdout=True)
-    elif so_mitigation == "dynamic_clean_oof_predictions":
-        fix_predictor_para = predictor_para.copy()
-        fix_predictor_para["learner_kwargs"] = dict(clean_oof_predictions=True)
-        mitigate_para = dict(refit_autogluon=True, dynamic_fix=True, fix_predictor_para=fix_predictor_para)
     else:
         raise ValueError(f"Unknown SO mitigation: {so_mitigation}")
 
-    predictor, ho_lb, ho_importance_df = use_holdout(train_data, label, predictor_para, fit_para, **mitigate_para)
+    predictor, ho_lb, ho_importance_df = use_holdout(predictor_para, fit_para, **mitigate_para)
 
-    return predictor, ho_lb.reset_index(), ho_importance_df.reset_index()
+    return predictor, ho_lb, ho_importance_df
 
 
 def _fit_autogluon_default(predictor_para, fit_para):

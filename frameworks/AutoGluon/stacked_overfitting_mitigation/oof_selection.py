@@ -60,7 +60,7 @@ def _get_allowed_models(holdout_data, label, predictor, model):
     importance_df = get_importance_diff_holdout_oof(holdout_data, label, predictor, model, 10)
     allowed_oof_features = [x for x in list(importance_df[~importance_df['drop']].index) if ("BAG_L1" in x)]
     logger.info(f"Allowed features for {model}: {allowed_oof_features}")
-    return allowed_oof_features, importance_df
+    return allowed_oof_features, importance_df.reset_index()
 
 
 def get_preselected_fit_hps(holdout_data: pd.DataFrame, label: str, predictor: TabularPredictor):

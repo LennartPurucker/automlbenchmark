@@ -52,3 +52,9 @@ def no_holdout(train_data, label, predictor_para, fit_para):
     log.info(f"No leak detected")
 
     return predictor
+
+# !old --- usage
+#     if so_mitigation == "heuristic":
+#         train_data, label, fit_para = get_label_train_data(fit_para, predictor_para)
+#         from stacked_overfitting_mitigation.heuristic_approaches import no_holdout
+#         return no_holdout(train_data, label, predictor_para, fit_para), None
