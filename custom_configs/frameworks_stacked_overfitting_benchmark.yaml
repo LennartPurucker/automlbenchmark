@@ -17,6 +17,24 @@ AG_bq:
     presets: best_quality
     _leaderboard_test: True
 
+AG_bq_rerun:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default (full rerun with current branch)"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+
+AG_bq_fl3:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default with full layer 3 weighted ensemble."
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
+
+
 AG_bq_reg_rerun:
   extends: AutoGluon
   description: "AutoGluon Best Quality Default rerun for regression with current version of branch (including memory fix)"
@@ -144,7 +162,7 @@ AG_DS_FL3_memory_fix:
 
 AG_DS_FL3_oof_calibration:
   extends: AutoGluon
-  description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus probability calibration (using the clean OOF fix)."
+  description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus probability calibration (using the clean OOF fix). [ONLY BINARY SO FAR]"
   params:
     _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
     presets: best_quality
