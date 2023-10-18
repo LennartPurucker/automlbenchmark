@@ -207,3 +207,15 @@ AG_DS_FL3_cv_instead_child_oof_fixed:
     num_stack_levels: 1
     ag_args_fit: {'full_last_weighted_ensemble': True}
     ag_args_ensemble: {'use_cv_instead_of_child_oof': True}
+
+
+OOM_tester:
+  extends: AutoGluon
+  description: "OOM Tester"
+  params:
+    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking"
+    num_stack_levels: 1
+    ag_args_fit: {'full_last_weighted_ensemble': True}
