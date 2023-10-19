@@ -68,7 +68,7 @@ AG_bq_M1910_memory_fix:
     presets: best_quality
     _leaderboard_test: True
     ag_args_fit: { 'full_last_weighted_ensemble': True }
-    
+
 ##################################################
 ### AutoGluon Baseline Stack / No Stack        ###
 ##################################################
