@@ -8,7 +8,7 @@ import concurrent.futures
 
 from autogluon.tabular import TabularPredictor
 from stacked_overfitting_mitigation.utils import get_label_train_data
-from stacked_overfitting_mitigation.spot_stacked_overfitting.py import _check_stacked_overfitting_from_leaderboard
+from stacked_overfitting_mitigation.spot_stacked_overfitting import _check_stacked_overfitting_from_leaderboard
 
 from stacked_overfitting_mitigation.oof_selection import get_preselected_fit_hps
 
