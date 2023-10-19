@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from autogluon.tabular import TabularPredictor
-from stacked_overfitting_mitigation.utils import _check_stacked_overfitting_from_leaderboard
+from stacked_overfitting_mitigation.spot_stacked_overfitting import _check_stacked_overfitting_from_leaderboard
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def stacked_overfitting_proxy_model(train_data, label, problem_type, split_rando
     predictor = TabularPredictor(**predictor_para)
     predictor.fit(train_data=inner_train_data, **fit_para)
     val_leaderboard = predictor.leaderboard(outer_val_data, silent=True).reset_index(drop=True)
-    stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
+    stacked_overfitting = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
     rmtree(predictor.path)
 
     # # Additional indicators / flags to not use stacking

@@ -29,7 +29,7 @@ from ag_utils.zs_portfolio import get_hyperparameters_from_zeroshot_framework
 log = logging.getLogger(__name__)
 
 
-def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=False):
+def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=False, dynamic_stacking_variant="default"):
     fit_default = so_mitigation is None
     if fit_default:
         log.info("Fit Default.")
@@ -59,11 +59,11 @@ def _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv=Fa
     elif so_mitigation == "ho_select_refit":
         mitigate_para = dict(refit_autogluon=True, select_on_holdout=True)
     elif so_mitigation == "ho_dynamic_stacking":
-        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True)
+        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_variant=dynamic_stacking_variant)
     elif so_mitigation == "ho_dynamic_stacking_select_oof":
-        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, select_oof_predictions=True)
+        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, select_oof_predictions=True, dynamic_stacking_variant=dynamic_stacking_variant)
     elif so_mitigation == "ho_dynamic_stacking_limited":
-        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_limited=True)
+        mitigate_para = dict(refit_autogluon=True, dynamic_stacking=True, dynamic_stacking_limited=True, dynamic_stacking_variant=dynamic_stacking_variant)
     else:
         raise ValueError(f"Unknown SO mitigation: {so_mitigation}")
 
@@ -102,6 +102,7 @@ def run(dataset, config):
     training_params = {k: v for k, v in config.framework_params.items() if not k.startswith("_")}
     presets = training_params.get("presets", [])
     so_mitigation = training_params.pop("so_mitigation", None)
+    dynamic_stacking_variant = training_params.pop("dynamic_stacking_variant", "default")
     dynamic_nested_cv = training_params.pop("dynamic_nested_cv", False)
     add_predictor_paras = training_params.pop("predictor_para", dict())
 
@@ -162,7 +163,7 @@ def run(dataset, config):
             # ),
             **training_params,
         )
-        predictor, ho_leaderboard, ho_oof_importance = _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv)
+        predictor, ho_leaderboard, ho_oof_importance = _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv, dynamic_stacking_variant)
 
     # FIXME how to save ho_leaderboard?
     artifact_saver = ArtifactSaver(predictor=predictor, config=config)

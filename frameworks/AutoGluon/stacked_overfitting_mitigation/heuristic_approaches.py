@@ -3,7 +3,7 @@ from autogluon.tabular import TabularPredictor
 import logging
 from functools import partial
 
-from stacked_overfitting_mitigation.utils import get_best_val_models
+from stacked_overfitting_mitigation.spot_stacked_overfitting import get_best_val_models
 
 log = logging.getLogger(__name__)
 

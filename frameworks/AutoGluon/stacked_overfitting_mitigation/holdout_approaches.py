@@ -7,7 +7,9 @@ from sklearn.model_selection import train_test_split
 import concurrent.futures
 
 from autogluon.tabular import TabularPredictor
-from stacked_overfitting_mitigation.utils import _check_stacked_overfitting_from_leaderboard, get_label_train_data
+from stacked_overfitting_mitigation.utils import get_label_train_data
+from stacked_overfitting_mitigation.spot_stacked_overfitting.py import _check_stacked_overfitting_from_leaderboard
+
 from stacked_overfitting_mitigation.oof_selection import get_preselected_fit_hps
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ def _verify_stacking_settings(use_stacking, fit_para):
 
 def _first_fit(para):
     # due to multiprocessing code
-    classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking = para
+    classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking, dynamic_stacking_variant = para
 
     train_data, label, fit_para = get_label_train_data(fit_para, predictor_para)
 
@@ -47,7 +49,7 @@ def _first_fit(para):
     # -- Obtain info from holdout
     val_leaderboard = predictor.leaderboard(outer_val_data, silent=True).reset_index(drop=True)
     best_model_on_holdout = val_leaderboard.loc[val_leaderboard["score_test"].idxmax(), "model"]
-    stacked_overfitting, *_ = _check_stacked_overfitting_from_leaderboard(val_leaderboard)
+    stacked_overfitting = _check_stacked_overfitting_from_leaderboard(val_leaderboard, dynamic_stacking_variant)
     with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", 1000):
         logger.info(val_leaderboard.sort_values(by="score_val", ascending=False))
     val_leaderboard = val_leaderboard.reset_index()
@@ -85,7 +87,7 @@ def _second_fit(time_limit_fit_2, predictor_para, fit_para):
 def use_holdout(predictor_para, fit_para, refit_autogluon=False, select_on_holdout=False,
                 dynamic_stacking=False, dynamic_fix=False,
                 ges_holdout=False, holdout_seed=42, fix_predictor_para=None, dynamic_stacking_limited=False,
-                select_oof_predictions=False,
+                select_oof_predictions=False, dynamic_stacking_variant="default",
                 ):
     """A function to run different configurations of AutoGluon with a holdout set to avoid stacked overfitting.
 
@@ -125,7 +127,7 @@ def use_holdout(predictor_para, fit_para, refit_autogluon=False, select_on_holdo
         time_limit_fit_1 = time_limit
         time_limit_fit_2 = 0
 
-    first_fit_para = [classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking]
+    first_fit_para = [classification_problem, holdout_seed, predictor_para, time_limit_fit_1, fit_para, refit_autogluon, select_oof_predictions, dynamic_stacking, dynamic_stacking_variant]
     # first fit in subprocess for memory safety
     with concurrent.futures.ProcessPoolExecutor() as executor:
         f = executor.submit(_first_fit, first_fit_para)
@@ -164,7 +166,7 @@ def use_holdout(predictor_para, fit_para, refit_autogluon=False, select_on_holdo
     if select_on_holdout:
         predictor.set_model_best(best_model_on_holdout, save_trainer=True)
 
-    return predictor, val_leaderboard[["model", "score_test"]].rename({"score_test": "unbiased_score_val"}, axis=1), importance_df
+    return predictor, val_leaderboard, importance_df
 
 # ! ---- old
 #     if ges_holdout:

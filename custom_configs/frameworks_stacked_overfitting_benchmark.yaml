@@ -25,7 +25,7 @@ AG_bq_rerun:
     presets: best_quality
     _leaderboard_test: True
 
-AG_bq_fl3:
+AG_bq_fl3:  # ====== current master branch (baseline)
   extends: AutoGluon
   description: "AutoGluon Best Quality Default with full layer 3 weighted ensemble."
   params:
@@ -60,6 +60,7 @@ AG_bq_no_clipping:
     _leaderboard_test: True
     _special_hps: [ [ 'FASTAI', { 'clipping': False } ] ]
 
+# M1910 := Deterministic OOF predictions, fix memory estimation, add NNFastAI clipping regression, full last level weighted ensemble
 AG_bq_M1910_memory_fix:
   extends: AutoGluon
   description: "AutoGluon Best Quality Current Master 19 Oct. With new memory fix."
@@ -239,13 +240,25 @@ AG_DS_FL3_cv_instead_child_oof_fixed:
 ##################################################
 ### Current / Next Tests                       ###
 ##################################################
-AG_DS_FL3_MF:
+# M1910B := Deterministic OOF predictions, fix memory estimation, fix memory leak, add NNFastAI clipping regression, full last level weighted ensemble
+AG_bq_M1910B_DS:
   extends: AutoGluon
-  description: "Best: Dynamic Stacking, Full L3 Ensemble, Holdout Memory Fix and Fold Fitting Strategy Memory Fix. Rerun for full results."
+  description: "Current Master (19 Oct B) with Dynamic Stacking"
   params:
     _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
+    num_stack_levels: 1
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
+
+AG_bq_M1910B_DSL:
+  extends: AutoGluon
+  description: "Current Master (19 Oct B) with Dynamic Stacking Limited"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking_limited"
     num_stack_levels: 1
     ag_args_fit: { 'full_last_weighted_ensemble': True }
