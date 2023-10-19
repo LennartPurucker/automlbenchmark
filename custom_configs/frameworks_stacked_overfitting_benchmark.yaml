@@ -1,14 +1,14 @@
 ---
-#########################
-### AutoML frameworks ###
-#########################
-
 AutoGluon:
   version: "latest"
   params:
-    _save_artifacts: ['leaderboard', 'info']
+    _save_artifacts: [ 'leaderboard', 'info' ]
     _leaderboard_test: True
 
+
+##################################################
+### AutoGluon Beset Quality frameworks         ###
+##################################################
 AG_bq:
   extends: AutoGluon
   description: "AutoGluon Best Quality Default"
@@ -58,9 +58,20 @@ AG_bq_no_clipping:
     _save_artifacts: [ 'leaderboard', 'info' ]
     presets: best_quality
     _leaderboard_test: True
-    _special_hps: [['FASTAI', {'clipping': False}]]
+    _special_hps: [ [ 'FASTAI', { 'clipping': False } ] ]
 
-
+AG_bq_M1910_memory_fix:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Current Master 19 Oct. With new memory fix."
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
+    
+##################################################
+### AutoGluon Baseline Stack / No Stack        ###
+##################################################
 AG_no_stack:
   extends: AutoGluon
   description: "AutoGluon without stacking"
@@ -74,16 +85,47 @@ AG_stack:
   extends: AutoGluon
   description: "AutoGluon with stacking"
   params:
-    _save_artifacts: ['leaderboard', 'info']
+    _save_artifacts: [ 'leaderboard', 'info' ]
     presets: best_quality
     _leaderboard_test: True
     num_stack_levels: 1
 
+
+##################################################
+### Other                                      ###
+##################################################
+AG_stack_clean_oof:
+  extends: AutoGluon
+  description: "AG_stack but clean oof prediction fix enabled whereby either IR, CIR, or SIG calibration is used based on fold model type and base model type."
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    num_stack_levels: 1
+    predictor_para:
+      learner_kwargs:
+        clean_oof_predictions: True
+
+OOM_tester:
+  extends: AutoGluon
+  description: "OOM Tester"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
+    presets: best_quality
+    _leaderboard_test: True
+    so_mitigation: "ho_dynamic_stacking"
+    num_stack_levels: 1
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
+
+
+##################################################
+### AutoGluon Dynamic Stacking                 ###
+##################################################
 AG_ho_dynamic_stacking:
   extends: AutoGluon
   description: "Determine SO based on holdout and refit with or without stacking."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
@@ -93,93 +135,78 @@ AG_ho_dynamic_stacking_limited:
   extends: AutoGluon
   description: "Determine SO based on holdout and refit with or without stacking."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking_limited"
     num_stack_levels: 1
 
-AG_stack_clean_oof:
-  extends: AutoGluon
-  description: "AG_stack but clean oof prediction fix enabled whereby either IR, CIR, or SIG calibration is used based on fold model type and base model type."
-  params:
-    _save_artifacts: ['leaderboard', 'info']
-    presets: best_quality
-    _leaderboard_test: True
-    num_stack_levels: 1
-    predictor_para:
-      learner_kwargs:
-        clean_oof_predictions: True
-
 AG_DS_full_l3:
   extends: AutoGluon
   description: "Best: Dynamic Stacking. Plus all trained models for l3 weighted ensemble."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
-
-
-
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
 
 AG_DS_FL3_dynamic_nested_cv:
   extends: AutoGluon
   description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus Dynamic Nested Cross-Validation."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     dynamic_nested_cv: True
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
 
 AG_DS_FL3_add_QDO_ES:
   extends: AutoGluon
   description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus Q(D)O-ES besides GES."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
 
 AG_DS_FL3_filter_oof:
   extends: AutoGluon
   description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus filter OOF at L2."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard', 'ho_oof_importance']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard', 'ho_oof_importance' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking_select_oof"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
 
 AG_DS_FL3_memory_fix:
   extends: AutoGluon
   description: "Best: Dynamic Stacking, Full L3 Ensemble. Plus memory fix between first and second fit."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
 
 AG_DS_FL3_oof_calibration:
   extends: AutoGluon
   description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus probability calibration (using the clean OOF fix). [ONLY BINARY SO FAR]"
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
     predictor_para:
       learner_kwargs:
         clean_oof_predictions: True
@@ -188,34 +215,37 @@ AG_DS_FL3_cv_instead_child_oof:
   extends: AutoGluon
   description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus using 1-repeat k-fold cross-validation for KNN, RF, and XT instead of OOB / LOO."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
-    ag_args_ensemble: {'use_cv_instead_of_child_oof': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
+    ag_args_ensemble: { 'use_cv_instead_of_child_oof': True }
 
 AG_DS_FL3_cv_instead_child_oof_fixed:
   extends: AutoGluon
   description: "Best: Dynamic Stacking (Memory Fix), Full L3 Ensemble. Plus using 1-repeat k-fold cross-validation for KNN, RF, and XT instead of OOB / LOO. Without the bug."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
-    ag_args_ensemble: {'use_cv_instead_of_child_oof': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
+    ag_args_ensemble: { 'use_cv_instead_of_child_oof': True }
 
 
-OOM_tester:
+##################################################
+### Current / Next Tests                       ###
+##################################################
+AG_DS_FL3_MF:
   extends: AutoGluon
-  description: "OOM Tester"
+  description: "Best: Dynamic Stacking, Full L3 Ensemble, Holdout Memory Fix and Fold Fitting Strategy Memory Fix. Rerun for full results."
   params:
-    _save_artifacts: ['leaderboard', 'info', 'ho_leaderboard']
+    _save_artifacts: [ 'leaderboard', 'info', 'ho_leaderboard' ]
     presets: best_quality
     _leaderboard_test: True
     so_mitigation: "ho_dynamic_stacking"
     num_stack_levels: 1
-    ag_args_fit: {'full_last_weighted_ensemble': True}
+    ag_args_fit: { 'full_last_weighted_ensemble': True }
