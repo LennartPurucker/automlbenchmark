@@ -238,7 +238,7 @@ AG_DS_FL3_cv_instead_child_oof_fixed:
 
 
 ##################################################
-### Current / Next Tests                       ###
+### Final Rerun                                ###
 ##################################################
 # M1910B := Deterministic OOF predictions, fix memory estimation, fix memory leak, add NNFastAI clipping regression, full last level weighted ensemble
 AG_bq_M1910B_DS:
@@ -262,3 +262,21 @@ AG_bq_M1910B_DSL:
     so_mitigation: "ho_dynamic_stacking_limited"
     num_stack_levels: 1
     ag_args_fit: { 'full_last_weighted_ensemble': True }
+
+AG_bq_M1910B_no_stack:
+  extends: AutoGluon
+  description: "AutoGluon without stacking"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    num_stack_levels: 0
+
+AG_bq_M1910B_stack:
+  extends: AutoGluon
+  description: "AutoGluon with stacking"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    num_stack_levels: 1
