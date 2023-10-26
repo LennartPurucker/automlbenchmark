@@ -9,7 +9,7 @@ frameworks:              # configuration namespace for the frameworks definition
     - '{root}/resources/frameworks.yaml'
     - '{user}/frameworks.yaml'
   allow_duplicates: true     # if true, the last definition is used.
-  tags: ['stable', 'latest', 'zeroshot', 'stackinfo', '2020Q2', '2021Q3',  '2023Q2', '2022AG', 'stacked_overfitting_benchmark']  # the list of supported tags when looking up frameworks:
+  tags: ['stable', 'latest', 'zeroshot', 'stackinfo', '2020Q2', '2021Q3',  '2023Q2', '2022AG', 'stacked_overfitting_benchmark', 'stacked_overfitting_benchmark_pr']  # the list of supported tags when looking up frameworks:
                               # for example frmwk:latest will look for framework frmwk in a frameworks_latest.yaml file if present.
 
 benchmarks:                     # configuration namespace for the benchmarks definitions.

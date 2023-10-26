@@ -106,6 +106,8 @@ def run(dataset, config):
     dynamic_nested_cv = training_params.pop("dynamic_nested_cv", False)
     add_predictor_paras = training_params.pop("predictor_para", dict())
 
+    new_time_limit = config.framework_params.get("_time_limit", None)
+
     # -- Code for special HPs
     special_hps = config.framework_params.get("_special_hps", None)
     if special_hps is not None:
@@ -156,7 +158,7 @@ def run(dataset, config):
         )
         fit_para = dict(
             train_data=train_path,
-            time_limit=config.max_runtime_seconds,
+            time_limit=config.max_runtime_seconds if new_time_limit is None else new_time_limit,
             # ag_args_ensemble=dict(
             #     nested=True,
             #     nested_num_folds=8,
@@ -165,7 +167,6 @@ def run(dataset, config):
         )
         predictor, ho_leaderboard, ho_oof_importance = _fit_autogluon(so_mitigation, predictor_para, fit_para, dynamic_nested_cv, dynamic_stacking_variant)
 
-    # FIXME how to save ho_leaderboard?
     artifact_saver = ArtifactSaver(predictor=predictor, config=config)
 
     log.info(f"Finished fit in {training.duration}s.")

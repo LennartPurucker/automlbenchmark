@@ -63,7 +63,7 @@ AG_bq_no_clipping:
 # M1910 := Deterministic OOF predictions, fix memory estimation, add NNFastAI clipping regression, full last level weighted ensemble
 AG_bq_M1910_memory_fix:
   extends: AutoGluon
-  description: "AutoGluon Best Quality Current Master 19 Oct. With new memory fix."
+  description: "AutoGluon Best Quality Current Master 19 Oct. With new memory leakage fix."
   params:
     _save_artifacts: [ 'leaderboard', 'info' ]
     presets: best_quality

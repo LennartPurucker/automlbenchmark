@@ -30,7 +30,7 @@ elif [[ "$VERSION" =~ ^[0-9] ]]; then
     PIP install --no-cache-dir -U "${PKG}==${VERSION}"
     PIP install --no-cache-dir -U "${PKG}.tabular[skex]==${VERSION}"
 else
-    VERSION="holdout_based_tests"  # used for QDO-ES tests: "ho_test_qdo_merge"
+    VERSION="dynamic_stacking"  # used for QDO-ES tests: "ho_test_qdo_merge"; holdout_based_tests
     REPO="https://github.com/LennartPurucker/autogluon.git"
 
     TARGET_DIR="${HERE}/lib/${PKG}"
@@ -45,7 +45,7 @@ fi
 
 PIP install s3fs
 PIP install "boto3==1.26.90"
-PIP install cir-model
-PIP install ribs==0.4.0
+# PIP install cir-model
+# PIP install ribs==0.4.0
 
 PY -c "from autogluon.tabular.version import __version__; print(__version__)" >> "${HERE}/.setup/installed"

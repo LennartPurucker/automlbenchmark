@@ -1,0 +1,41 @@
+---
+AutoGluon:
+  version: "latest"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    _leaderboard_test: True
+
+
+##################################################
+### AutoGluon Beset Quality frameworks         ###
+##################################################
+AG_bq:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+
+AG_DS:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    _time_limit: 120 # 28800
+    dynamic_stacking: True
+    num_stack_levels: 1
+    ds_args:
+      detection_time_frac: 0.5
+
+AG_DSL:
+  extends: AutoGluon
+  description: "AutoGluon Best Quality Default"
+  params:
+    _save_artifacts: [ 'leaderboard', 'info' ]
+    presets: best_quality
+    _leaderboard_test: True
+    dynamic_stacking: True
+    num_stack_levels: 1
