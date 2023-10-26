@@ -24,7 +24,7 @@ AG_DS:
     _save_artifacts: [ 'leaderboard', 'info' ]
     presets: best_quality
     _leaderboard_test: True
-    _time_limit: 120 # 28800
+    _time_limit: 28800
     dynamic_stacking: True
     num_stack_levels: 1
     ds_args:
