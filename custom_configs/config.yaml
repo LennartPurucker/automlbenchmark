@@ -72,6 +72,7 @@ aws:                    # configuration namespace for AWS mode.
     - '{user}/frameworks_zeroshot.yaml'
     - '{user}/frameworks_stackinfo.yaml'
     - '{user}/frameworks_stacked_overfitting_benchmark.yaml'
+    - '{user}/frameworks_stacked_overfitting_benchmark_pr.yaml'
     - '{user}/constraints.yaml'
     - '{user}/benchmarks'
     - '{user}/extensions'
