@@ -9,7 +9,7 @@ AutoGluon:
 ##################################################
 ### AutoGluon Beset Quality frameworks         ###
 ##################################################
-AG_bq:
+PR_AG_bq:
   extends: AutoGluon
   description: "AutoGluon Best Quality Default"
   params:
@@ -17,7 +17,7 @@ AG_bq:
     presets: best_quality
     _leaderboard_test: True
 
-AG_DS:
+PR_AG_DS:
   extends: AutoGluon
   description: "AutoGluon Best Quality Default"
   params:
@@ -30,7 +30,7 @@ AG_DS:
     ds_args:
       detection_time_frac: 0.5
 
-AG_DSL:
+PR_AG_DSL:
   extends: AutoGluon
   description: "AutoGluon Best Quality Default"
   params:
