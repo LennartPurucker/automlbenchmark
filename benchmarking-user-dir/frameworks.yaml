@@ -1,0 +1,20 @@
+---
+AutoGluon:
+  version: "1.1.2b20241029"  # Latest version of AutoGluon
+
+AutoGluonLatest-Default:
+  extends: AutoGluon
+  params:
+    presets: best_quality
+    memory_limit: 32
+    num_cpus: 8
+    num_gpus: 1
+    _leaderboard_extra_info: true
+    _leaderboard_test: true
+
+AutoGluonLatest-New:
+  extends: AutoGluonLatest-Default
+  params:
+    _use_synthetic_holdout: true
+    dynamic_stacking: false
+    num_stack_levels: 1

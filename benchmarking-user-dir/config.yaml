@@ -1,0 +1,4 @@
+frameworks:
+  definition_file:
+    - '{root}/resources/frameworks.yaml'  # Existing
+    - '{user}/frameworks.yaml'  # Ours
